@@ -1152,19 +1152,23 @@ int GetBERlen(uint8_t *buf, int *i) {
     Returns pointer to the found TLV
  -------------------------------------------------------------------------------*/
 uint8_t *Find_TLV_Tag(uint8_t *parray, uint8_t tag, int *plen) {
-    int ind = 0, arraylen;
+    int ind = 0, arraylen, sub_ind, sub_len;
     if (parray == NULL)
         return NULL;
     if (plen != NULL)
         *plen = 0;
     arraylen = GetBERlen(parray, &ind) + ind;  // Get ASN.1 encoded length of the found object
-    for (ind = 0; ind < arraylen; ind++) {
+    while (ind < arraylen) {
         if (parray[ind] == tag) {  // Compare with tag we are looking for
             if (plen != NULL) {
                 *plen = arraylen - ind;
             }
             return parray + ind;  // Return pointer to the Tag
         }
+        /* Not a match: skip this sibling TLV's own length+value instead of scanning its value bytes for a false match */
+        sub_ind = ind;
+        sub_len = GetBERlen(parray, &sub_ind);
+        ind = sub_ind + sub_len;
     }
     return NULL;
 }
