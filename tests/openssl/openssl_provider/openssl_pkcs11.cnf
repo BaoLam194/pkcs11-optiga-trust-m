@@ -1,0 +1,19 @@
+openssl_conf = openssl_init
+
+[openssl_init]
+providers = provider_sect
+
+[provider_sect]
+default = default_sect
+pkcs11 = pkcs11_sect
+
+[default_sect]
+activate = 1
+
+[pkcs11_sect]
+identity = pkcs11prov
+module = /usr/lib64/ossl-modules/pkcs11.so
+pkcs11_module = /usr/lib/x86_64-linux-gnu/pkcs11/opensc-pkcs11.so
+force_login = 1
+pin = 0000
+activate = 1
