@@ -1402,7 +1402,7 @@ static CK_FUNCTION_LIST prvP11FunctionList = {
     NULL, /*C_SetPIN*/
     C_OpenSession,
     C_CloseSession,
-    NULL, /*C_CloseAllSessions, - implemented, but not supported by OpenSC pkcs11-spy based on PKCS#11 ver.2.11 */
+    C_CloseAllSessions,
     C_GetSessionInfo, /*C_GetSessionInfo*/
     NULL, /*C_GetOperationState*/
     NULL, /*C_SetOperationState*/
@@ -3482,10 +3482,11 @@ CK_DEFINE_FUNCTION(CK_RV, C_CloseSession)(CK_SESSION_HANDLE xSession) {
     return xResult;
 }
 /**************************************************************************
- * @brief Terminate all sessions and release resources.
+ * @brief Terminate all sessions of a slot and release resources.
  **************************************************************************/
-CK_DEFINE_FUNCTION(CK_RV, C_CloseAllSession)(CK_SESSION_HANDLE xSession) {
-    PKCS11_MODULE_INITIALIZED_AND_SESSION_VALID(xSession);
+CK_DEFINE_FUNCTION(CK_RV, C_CloseAllSessions)(CK_SLOT_ID slotID) {
+    PKCS11_MODULE_INITIALIZED
+    (void)slotID;
     free_session_pointer((CK_SESSION_HANDLE)NULL);
     return xResult;
 }
