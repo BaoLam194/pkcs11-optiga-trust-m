@@ -4046,28 +4046,46 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
                 int pubKeyLen;
                 int data_index = 0;
                 int modulus_length;
-
+                
+                // The RSA public key is stored as ASN.1 X509 format
+                // SubjectPublicKeyInfo -> Find BIT STRING 
                 uint8_t *pPubKey = Find_TLV_Tag(pxObjectValue, 0x03, &pubKeyLen);
-
-                if (pPubKey == NULL)
-                    return CKR_DATA_INVALID;
+                if (pPubKey == NULL) {
+                    PKCS11_PRINT("ERROR: C_GetAttributeValue: CKA_MODULUS: BIT STRING missing\r\n");
+                    xResult = CKR_DATA_INVALID;
+                    goto get_object_exit;
+                }
+                // Skip the BIT STRING header and its unused-bits octet to reach RSAPublicKey SEQUENCE 
+                GetBERlen(pPubKey, &data_index);
+                uint8_t *pRsaPubKey = pPubKey + data_index + 1;
 
                 uint8_t *pModulus = Find_TLV_Tag(
-                    pPubKey,
+                    pRsaPubKey,
                     0x02,  // Tag for the modulus (DER INTEGER)
                     &iModulusLen
                 );
-
-                modulus_length = GetBERlen(pModulus, &data_index);
                 if (pModulus == NULL) {
-                    xResult = get_object_value(xPalHandle_Modulus, &pxObjectValue, &ulLength);
+                    PKCS11_PRINT("ERROR: C_GetAttributeValue: CKA_MODULUS: INTEGER missing\r\n");
+                    xResult = CKR_DATA_INVALID;
+                    goto get_object_exit;
+                }
+
+                // Extract the Modulus 
+                data_index = 0;
+                modulus_length = GetBERlen(pModulus, &data_index);
+                pModulus += data_index;
+
+                /* CKA_MODULUS is an unsigned big-endian value: drop the DER INTEGER sign byte */
+                if (modulus_length > 1 && pModulus[0] == 0x00) {
+                    pModulus++;
+                    modulus_length--;
                 }
                 xResult = check_and_copy_attribute(
                     xObject,
                     "CKA_MODULUS",
                     pxTemplate,
                     iAttrib,
-                    (void *)pModulus + data_index,
+                    (void *)pModulus,
                     modulus_length
                 );
             } break;
