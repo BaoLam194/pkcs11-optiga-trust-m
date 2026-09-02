@@ -1405,7 +1405,7 @@ static CK_FUNCTION_LIST prvP11FunctionList = {
     NULL, /*C_SetPIN*/
     C_OpenSession,
     C_CloseSession,
-    NULL, /*C_CloseAllSessions, - implemented, but not supported by OpenSC pkcs11-spy based on PKCS#11 ver.2.11 */
+    C_CloseAllSessions,
     C_GetSessionInfo,
     C_GetOperationState,
     NULL, /*C_SetOperationState*/
@@ -3527,10 +3527,11 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetOperationState)
     return CKR_OK;
  */}
 /**************************************************************************
- * @brief Terminate all sessions and release resources.
+ * @brief Terminate all sessions of a slot and release resources.
  **************************************************************************/
-CK_DEFINE_FUNCTION(CK_RV, C_CloseAllSession)(CK_SESSION_HANDLE xSession) {
-    PKCS11_MODULE_INITIALIZED_AND_SESSION_VALID(xSession);
+CK_DEFINE_FUNCTION(CK_RV, C_CloseAllSessions)(CK_SLOT_ID slotID) {
+    PKCS11_MODULE_INITIALIZED
+    (void)slotID;
     free_session_pointer((CK_SESSION_HANDLE)NULL);
     return xResult;
 }
@@ -4090,28 +4091,46 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
                 int pubKeyLen;
                 int data_index = 0;
                 int modulus_length;
-
+                
+                // The RSA public key is stored as ASN.1 X509 format
+                // SubjectPublicKeyInfo -> Find BIT STRING 
                 uint8_t *pPubKey = Find_TLV_Tag(pxObjectValue, 0x03, &pubKeyLen);
-
-                if (pPubKey == NULL)
-                    return CKR_DATA_INVALID;
+                if (pPubKey == NULL) {
+                    PKCS11_PRINT("ERROR: C_GetAttributeValue: CKA_MODULUS: BIT STRING missing\r\n");
+                    xResult = CKR_DATA_INVALID;
+                    goto get_object_exit;
+                }
+                // Skip the BIT STRING header and its unused-bits octet to reach RSAPublicKey SEQUENCE 
+                GetBERlen(pPubKey, &data_index);
+                uint8_t *pRsaPubKey = pPubKey + data_index + 1;
 
                 uint8_t *pModulus = Find_TLV_Tag(
-                    pPubKey,
+                    pRsaPubKey,
                     0x02,  // Tag for the modulus (DER INTEGER)
                     &iModulusLen
                 );
-
-                modulus_length = GetBERlen(pModulus, &data_index);
                 if (pModulus == NULL) {
-                    xResult = get_object_value(xPalHandle_Modulus, &pxObjectValue, &ulLength);
+                    PKCS11_PRINT("ERROR: C_GetAttributeValue: CKA_MODULUS: INTEGER missing\r\n");
+                    xResult = CKR_DATA_INVALID;
+                    goto get_object_exit;
+                }
+
+                // Extract the Modulus 
+                data_index = 0;
+                modulus_length = GetBERlen(pModulus, &data_index);
+                pModulus += data_index;
+
+                /* CKA_MODULUS is an unsigned big-endian value: drop the DER INTEGER sign byte */
+                if (modulus_length > 1 && pModulus[0] == 0x00) {
+                    pModulus++;
+                    modulus_length--;
                 }
                 xResult = check_and_copy_attribute(
                     xObject,
                     "CKA_MODULUS",
                     pxTemplate,
                     iAttrib,
-                    (void *)pModulus + data_index,
+                    (void *)pModulus,
                     modulus_length
                 );
             } break;
