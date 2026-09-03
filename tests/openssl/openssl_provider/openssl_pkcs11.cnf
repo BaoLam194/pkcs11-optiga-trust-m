@@ -11,9 +11,7 @@ pkcs11 = pkcs11_sect
 activate = 1
 
 [pkcs11_sect]
-identity = pkcs11prov
-module = /usr/lib64/ossl-modules/pkcs11.so
-pkcs11_module = /usr/lib/x86_64-linux-gnu/pkcs11/opensc-pkcs11.so
-force_login = 1
-pin = 0000
+module = /usr/lib/aarch64-linux-gnu/ossl-modules/pkcs11.so
+pkcs11-module-path = /usr/lib/liboptigatrust-i2c-linux-pkcs11.so
+pkcs11-module-token-pin = 0000
 activate = 1
