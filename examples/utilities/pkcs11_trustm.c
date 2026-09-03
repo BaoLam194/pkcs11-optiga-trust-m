@@ -3736,7 +3736,8 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
                         (int)xObject,
                         (int)xResult
                     );
-                    goto get_object_exit;
+                    xResult = CKR_ATTRIBUTE_TYPE_INVALID;
+                    break;
                 }
                 xResult = check_and_copy_attribute(
                     xObject,
@@ -4085,7 +4086,8 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
                         (int)xObject,
                         (int)xResult
                     );
-                    goto get_object_exit;
+                    xResult = CKR_DATA_INVALID;
+                    break;
                 }
                 int iModulusLen;
                 int pubKeyLen;
@@ -4098,7 +4100,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
                 if (pPubKey == NULL) {
                     PKCS11_PRINT("ERROR: C_GetAttributeValue: CKA_MODULUS: BIT STRING missing\r\n");
                     xResult = CKR_DATA_INVALID;
-                    goto get_object_exit;
+                    break;
                 }
                 // Skip the BIT STRING header and its unused-bits octet to reach RSAPublicKey SEQUENCE 
                 GetBERlen(pPubKey, &data_index);
@@ -4112,7 +4114,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
                 if (pModulus == NULL) {
                     PKCS11_PRINT("ERROR: C_GetAttributeValue: CKA_MODULUS: INTEGER missing\r\n");
                     xResult = CKR_DATA_INVALID;
-                    goto get_object_exit;
+                    break;
                 }
 
                 // Extract the Modulus 
@@ -4424,8 +4426,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_FindObjects)
                 && pxSession->find_object_class != optiga_objects_list[xPalHandle].object_class)
                 continue;
 
-            *pxObject = xPalHandle;
-            pxObject += sizeof(CK_OBJECT_HANDLE);
+            *pxObject++ = xPalHandle;
             (*pulObjectCount)++;
             PKCS11_DEBUG(
                 "TRACE: C_FindObjects: Object found: %s\r\n",
@@ -4436,9 +4437,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_FindObjects)
                 return CKR_OK;
             }
         }
-        /* Find complete, no more objects for this slot */
-        *pxObject = CK_INVALID_HANDLE;
-        *pulObjectCount = 0;
+        /* Find complete, no more objects for this slot: keep the objects collected so far */
         return CKR_OK;
     }
 }
