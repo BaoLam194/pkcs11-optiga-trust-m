@@ -1109,7 +1109,7 @@ long get_object_value(CK_OBJECT_HANDLE object_handle, uint8_t **ppucData, uint16
         OPTIGA_COMMS_FULL_PROTECTION
     );
     if (OPTIGA_LIB_SUCCESS != optiga_lib_return) {
-        PKCS11_PRINT("ERROR: optiga_trustm_read_data (OID: 0x%04X) failed.\r\n", lOptigaOid);
+        PKCS11_PRINT("ERROR: optiga_trustm_read_data (OID: 0x%04X) failed. Optiga Error %04X\r\n", lOptigaOid, optiga_lib_return);
         get_object_value_cleanup(*ppucData);
         *ppucData = NULL;
         return CKR_DEVICE_ERROR;
@@ -3046,8 +3046,9 @@ CK_DEFINE_FUNCTION(CK_RV, C_Initialize)(CK_VOID_PTR pvInitArgs) {
 
     /* Ensure that the FreeRTOS heap is used. */
     //        CRYPTO_ConfigureHeap();
-    Semaphore_Initialize();
+    
     if (pkcs11_context.is_initialized != CK_TRUE) {
+        Semaphore_Initialize();
         memset(
             &pkcs11_context,
             0,
@@ -3793,16 +3794,31 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
                     );
                     goto get_object_exit;
                 }
+                // First extract the raw EC point from the SubjectPublicKeyInfo from OPTIGA oid  
+                // Then wrap it around with the DER OCTET STRING as per PKCS#11 specs
                 if (pxObjectValue[0] == 0x30)  // DER header tag present in the object data
                 {
                     int ecpoint_len;
+                    uint8_t der_header[3];
+                    uint8_t der_header_len;
                     uint8_t *ec_point = extract_ECPoint_from_der(pxObjectValue, &ecpoint_len);
                     if (ec_point == NULL) {
                         xResult = CKR_DATA_INVALID;
                         break;
                     }
-                    ulLength = ecpoint_len;
-                    memmove(pxObjectValue, ec_point, ulLength);
+                    /* CKA_EC_POINT is the DER OCTET STRING wrapping of the point, not the bare point */
+                    der_header[0] = 0x04;
+                    if (ecpoint_len < 0x80) {
+                        der_header[1] = (uint8_t)ecpoint_len;
+                        der_header_len = 2;
+                    } else {
+                        der_header[1] = 0x81;
+                        der_header[2] = (uint8_t)ecpoint_len;
+                        der_header_len = 3;
+                    }
+                    memmove(pxObjectValue + der_header_len, ec_point, ecpoint_len);
+                    memcpy(pxObjectValue, der_header, der_header_len);
+                    ulLength = ecpoint_len + der_header_len;
                 } else if (pxObjectValue[0] == 0)
                     ulLength =
                         67;  // Pub key not written (ex., Slot 0 IFX provisioned - default - EC 256 bit - all zero bytes)
