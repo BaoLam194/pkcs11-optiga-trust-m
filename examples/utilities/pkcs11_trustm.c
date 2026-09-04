@@ -3794,7 +3794,8 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
                         (int)xObject,
                         (int)xResult
                     );
-                    goto get_object_exit;
+                    xFinalResult = xResult;
+                    break;
                 }
                 // First extract the raw EC point from the SubjectPublicKeyInfo from OPTIGA oid  
                 // Then wrap it around with the DER OCTET STRING as per PKCS#11 specs
@@ -3832,7 +3833,8 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
                     (void *)pxObjectValue,
                     ulLength
                 );
-            } break;
+                break;
+            } 
             /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
             case CKA_CERTIFICATE_TYPE:
                 xType = CKC_VENDOR_DEFINED;
@@ -4078,6 +4080,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
                 break;
             /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
             case CKA_EC_PARAMS:
+                CK_BBOOL isExit = CK_FALSE;
                 switch ((int)pxSession->key_alg_id) {
                     case 0:
                         //!!!JC ToDo: If ECC key length unknown, need to read it from Optiga metadata.
@@ -4118,8 +4121,12 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
                             "ERROR: C_GetAttributeValue: Invalid EC key type: 0x%X\r\n",
                             (int)pxSession->key_alg_id
                         );
-                        goto get_object_exit;
+                        xFinalResult = CKR_ARGUMENTS_BAD;
+                        isExit = CK_TRUE;
+                        break;
                 }
+                if(isExit) break;
+
                 xResult = check_and_copy_attribute(
                     xObject,
                     "CKA_EC_PARAMS",
@@ -4283,7 +4290,6 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
     }
     //  PKCS11_PRINT_TEMPLATE(pxTemplate, ulCount)
 
-get_object_exit:
     get_object_value_cleanup(pxObjectValue); /* Free the buffer where object was stored. */
     return (xFinalResult == CK_TRUE) ? xResult : xFinalResult;
 }
