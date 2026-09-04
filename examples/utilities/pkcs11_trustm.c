@@ -3596,6 +3596,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
 (CK_SESSION_HANDLE xSession, CK_OBJECT_HANDLE xObject, CK_ATTRIBUTE_PTR pxTemplate, CK_ULONG ulCount
 ) {
     PKCS11_MODULE_INITIALIZED_AND_SESSION_VALID(xSession);
+    CK_RV xFinalResult = CK_TRUE;
     CK_BBOOL xIsPrivate = CK_TRUE;
     CK_BBOOL xIsLocal = CK_FALSE;
     CK_ULONG iAttrib;
@@ -3673,7 +3674,8 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
 
     for (iAttrib = 0; iAttrib < ulCount /*!JC && CKR_OK == xResult */; iAttrib++) {
         pxTemplate[iAttrib].ulValueLen = CK_UNAVAILABLE_INFORMATION;
-
+        get_object_value_cleanup(pxObjectValue); // Free the object
+        pxObjectValue = NULL;
         switch (pxTemplate[iAttrib].type) {
             /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
             case CKA_CLASS:
@@ -3942,6 +3944,68 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
                 );
                 break;
             /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+            case CKA_COPYABLE:
+                xResult = check_and_copy_bool_attribute(
+                    xObject,
+                    "CKA_COPYABLE",
+                    pxTemplate,
+                    iAttrib,
+                    CK_FALSE
+                );
+                break;
+            /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+            case CKA_TRUSTED:
+                xResult = check_and_copy_bool_attribute(
+                    xObject,
+                    "CKA_TRUSTED",
+                    pxTemplate,
+                    iAttrib,
+                    CK_FALSE
+                );
+                break;
+            /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+            case CKA_CERTIFICATE_CATEGORY:
+                xType = CK_CERTIFICATE_CATEGORY_UNSPECIFIED;
+                xResult = check_and_copy_attribute(
+                    xObject,
+                    "CKA_CERTIFICATE_CATEGORY",
+                    pxTemplate,
+                    iAttrib,
+                    &xType, 
+                    sizeof(CK_CERTIFICATE_TYPE)
+                );
+                break;
+            /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+            case CKA_SUBJECT:
+                xResult = check_and_copy_bool_attribute(
+                    xObject,
+                    "CKA_SUBJECT",
+                    pxTemplate,
+                    iAttrib,
+                    CK_FALSE
+                );
+                break;
+            /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+            case CKA_ISSUER: // Default empty
+                pxTemplate[iAttrib].ulValueLen = 0;
+                xResult = CKR_OK;
+                break;
+            /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+            case CKA_SERIAL_NUMBER: // Default empty
+                pxTemplate[iAttrib].ulValueLen = 0;
+                xResult = CKR_OK;
+                break;
+            /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+            case CKA_PUBLIC_KEY_INFO: // Possible to have by reading the Optiga OID
+                xResult = check_and_copy_bool_attribute(
+                    xObject,
+                    "CKA_ISSUER",
+                    pxTemplate,
+                    iAttrib,
+                    CK_FALSE
+                );
+                break;
+            /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
             case CKA_ENCRYPT:
                 xResult = check_and_copy_bit_attribute(
                     xObject,
@@ -4202,27 +4266,26 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
             case CKA_EXPONENT_1:
             case CKA_EXPONENT_2:
             case CKA_COEFFICIENT:
-                return CKR_ATTRIBUTE_SENSITIVE;
+                xFinalResult = CKR_ATTRIBUTE_SENSITIVE;
+                break;
             /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
             default:
                 if ((unsigned int)(pxTemplate[iAttrib].type) >= 0x800) {
-                    xResult = CKR_ATTRIBUTE_TYPE_INVALID;
+                    xFinalResult = CKR_ATTRIBUTE_TYPE_INVALID;
                     break;
                 }
                 PKCS11_PRINT(
                     "WARNING: C_GetAttributeValue: Unknown attribute 0x%X ignored, returned FALSE\r\n",
                     (int)(pxTemplate[iAttrib].type)
                 );
-                pxTemplate[iAttrib].pValue = CK_FALSE;
-                pxTemplate[iAttrib].ulValueLen =
-                    sizeof(CK_BBOOL);  // Ignore unknown attributes, return FALSE
+                pxTemplate[iAttrib].ulValueLen = CK_UNAVAILABLE_INFORMATION;  // Ignore unknown attributes, return FALSE
         }
     }
     //  PKCS11_PRINT_TEMPLATE(pxTemplate, ulCount)
 
 get_object_exit:
     get_object_value_cleanup(pxObjectValue); /* Free the buffer where object was stored. */
-    return xResult;
+    return (xFinalResult == CK_TRUE) ? xResult : xFinalResult;
 }
 /**************************************************************************
  * @brief Begin an enumeration sequence for the objects of the specified type.
