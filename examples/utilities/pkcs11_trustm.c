@@ -4081,12 +4081,59 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
             /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
             case CKA_EC_PARAMS:
                 CK_BBOOL isExit = CK_FALSE;
+
+                // Read from Optiga Object metadata to identify the algorithm and save it to the session
+                // If can not find, just exit
+                if (pxSession->key_alg_id == 0 && optiga_objects_list[xPalHandle].key_type == CKK_EC) {
+                    CK_OBJECT_HANDLE xPalPrivate = xPalHandle;
+                    uint8_t metadata[64];
+                    uint8_t *pAlg = NULL;
+                    optiga_lib_status_t optiga_lib_return;
+
+                    if (xClass == CKO_PUBLIC_KEY) {
+                        xPalPrivate = xPalHandle - 1;
+                    }
+
+                    if (xPalPrivate < MAX_NUM_OBJECTS
+                        && optiga_objects_list[xPalPrivate].object_class == CKO_PRIVATE_KEY) {
+                        if (optiga_objects_list[xPalPrivate].obj_size_key_alg != 0) { // The object has a algorithm identifier already
+                            pxSession->key_alg_id = optiga_objects_list[xPalPrivate].obj_size_key_alg;
+                        } else {
+                            optiga_lib_return = optiga_trustm_read_metadata(
+                                optiga_objects_list[xPalPrivate].physical_oid,
+                                metadata,
+                                sizeof(metadata),
+                                OPTIGA_COMMS_FULL_PROTECTION
+                            );
+                            if (OPTIGA_LIB_SUCCESS != optiga_lib_return) {
+                                PKCS11_PRINT(
+                                    "ERROR: C_GetAttributeValue: Failed to read EC key metadata for OID 0x%04X\r\n",
+                                    optiga_objects_list[xPalPrivate].physical_oid
+                                );
+                                xFinalResult = CKR_DEVICE_ERROR;
+                                isExit = CK_TRUE;
+                                break;
+                            }
+                            // Optiga Tag for algorithm identifier in metadata
+                            pAlg = Find_TLV_Tag(metadata, 0xE0, NULL);
+                            if (pAlg == NULL) {
+                                PKCS11_PRINT(
+                                    "ERROR: C_GetAttributeValue: EC key metadata does not contain algorithm tag\r\n"
+                                );
+                                xFinalResult = CKR_ATTRIBUTE_TYPE_INVALID;
+                                isExit = CK_TRUE;
+                                break;
+                            }
+                            pxSession->key_alg_id = pAlg[2];
+                            optiga_objects_list[xPalPrivate].obj_size_key_alg = pxSession->key_alg_id;
+                        }
+                    }
+                }
                 switch ((int)pxSession->key_alg_id) {
                     case 0:
-                        //!!!JC ToDo: If ECC key length unknown, need to read it from Optiga metadata.
-                        temp_ec_value = ec_param_p256;
-                        pxSession->ec_key_size = 0x44;
-                        ulLength = sizeof(ec_param_p256);
+                        PKCS11_PRINT("ERROR: C_GetAttributeValue: Unknown EC key type\r\n");
+                        xFinalResult = CKR_ATTRIBUTE_TYPE_INVALID;
+                        isExit = CK_TRUE;
                         break;
                     case OPTIGA_ECC_CURVE_NIST_P_256:
                         temp_ec_value = ec_param_p256;
@@ -4099,9 +4146,9 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
                         ulLength = sizeof(ec_param_p384);
                         break;
                     case OPTIGA_ECC_CURVE_NIST_P_521:
-                        temp_ec_value = ec_param_p256;
+                        temp_ec_value = ec_param_p521;
                         pxSession->ec_key_size = 0x89;
-                        ulLength = sizeof(ec_param_p256);
+                        ulLength = sizeof(ec_param_p521);
                         break;
                     case OPTIGA_ECC_CURVE_BRAIN_POOL_P_256R1:
                         temp_ec_value = ec_param_BP256;
