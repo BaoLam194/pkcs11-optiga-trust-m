@@ -192,7 +192,7 @@ uint8_t ec_param_BP512[] = pkcs11DER_ENCODED_OID_BP512;
 typedef struct pkcs11_object_t {
     //  CK_OBJECT_HANDLE logical_object_handle;     /* 1,2,... */
     CK_SLOT_ID slot_id;
-    CK_BYTE text_label[MAX_LABEL_LENGTH + 1]; /* Object Label text "0xE0E0" */
+    CK_BYTE text_label[MAX_LABEL_LENGTH + 1]; /* Object Label text "PubKey, Cert, PrvKey" */
     CK_LONG physical_oid; /* Object's physical Optiga Trust M address*/
     CK_OBJECT_CLASS object_class; /* CKO_CERTIFICATE, CKO_PUBLIC_KEY, CKO_PRIVATE_KEY */
     CK_KEY_TYPE key_type; /* Key type: ECC or RSA */
@@ -4464,12 +4464,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_FindObjects)
  CK_ULONG_PTR pulObjectCount) {
     PKCS11_MODULE_INITIALIZED_AND_SESSION_VALID(xSession);
 
-    CK_BYTE_PTR pcObjectValue = NULL;
-    uint32_t xObjectLength = 0;
-    CK_BBOOL xIsPrivate = CK_TRUE;
-    CK_BYTE xByte = 0;
     CK_OBJECT_HANDLE xPalHandle = CK_INVALID_HANDLE;
-    uint16_t uObjCount;
 
     PKCS11_DEBUG(
         "TRACE: C_FindObjects: Slot: %d. Counter: %d MaxCount:%d\r\n",
@@ -4547,8 +4542,8 @@ CK_DEFINE_FUNCTION(CK_RV, C_FindObjects)
     }
     /*- - - - - - - - - no label or ID provided, find all objects in this slot - - - - - - - - - */
     else {
-        for (uObjCount = 0; pxSession->find_object_counter < PKCS11_SLOT_MAX_OBJECTS;
-             pxSession->find_object_counter++) {
+        for (; (pxSession->find_object_counter < PKCS11_SLOT_MAX_OBJECTS) && ((*pulObjectCount) < ulMaxObjectCount);
+                         pxSession->find_object_counter++) {
             xPalHandle = supported_slots_mechanisms_list[pxSession->slot_id]
                              .logical_object_handle[pxSession->find_object_counter];
             if (xPalHandle == 0)
@@ -4564,10 +4559,6 @@ CK_DEFINE_FUNCTION(CK_RV, C_FindObjects)
                 "TRACE: C_FindObjects: Object found: %s\r\n",
                 optiga_objects_list[xPalHandle].text_label
             );
-            if (++uObjCount >= ulMaxObjectCount) {
-                pxSession->find_object_counter++;
-                return CKR_OK;
-            }
         }
         /* Find complete, no more objects for this slot: keep the objects collected so far */
         return CKR_OK;
