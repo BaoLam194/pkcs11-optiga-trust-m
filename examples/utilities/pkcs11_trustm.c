@@ -4090,6 +4090,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
                     uint8_t *pAlg = NULL;
                     optiga_lib_status_t optiga_lib_return;
 
+                    // Only the private key object is created with the Algorithm tag so need to read the privkey object
                     if (xClass == CKO_PUBLIC_KEY) {
                         xPalPrivate = xPalHandle - 1;
                     }
