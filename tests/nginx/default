@@ -27,7 +27,7 @@ server {
 	listen 443 ssl default_server;
 	listen [::]:443 ssl default_server;
 	ssl_certificate server_cert_TrustM.pem; 
-	ssl_certificate_key "store:pkcs11:token=Tokeno"; 
+	ssl_certificate_key "store:pkcs11:token=Token0;type=private"; 
     # PKCS11 URI for the provider
 		
 	#
