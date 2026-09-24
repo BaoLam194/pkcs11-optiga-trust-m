@@ -19,7 +19,7 @@ echo "=================================================="
 ./pd --slot 0 --label Cert --read-object --type cert --output-file temp_server_cert.der
 
 openssl x509 -in temp_server_cert.der -outform PEM -out server_cert_TrustM.pem
-mv server_cert_TrustM.pem certificates/server_cert_TrustM.pem
+mv server_cert_TrustM.pem certificates/
 sudo cp default /etc/nginx/sites-enabled/default
 sudo cp certificates/server_cert_TrustM.pem /etc/nginx/server_cert_TrustM.pem
 sudo service nginx restart
