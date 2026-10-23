@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2022 Infineon Technologies AG
+#
+# SPDX-License-Identifier: MIT
+
+---
+BasedOnStyle: Chromium
+
+AccessModifierOffset: -2
+AlignAfterOpenBracket: BlockIndent
+AlignConsecutiveMacros: false
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignEscapedNewlines: DontAlign
+AlignOperands: Align
+AlignTrailingComments: false
+AllowAllArgumentsOnNextLine: false
+AllowAllConstructorInitializersOnNextLine: false
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+BinPackArguments: false
+BreakBeforeBinaryOperators: NonAssignment
+BreakConstructorInitializers: AfterColon
+BreakInheritanceList: AfterColon
+BreakStringLiterals: false
+ColumnLimit: 100
+IncludeBlocks: Regroup
+IndentWidth: 4
+PointerAlignment: Right
+ReflowComments: false
+SortIncludes: true
+SpaceAfterTemplateKeyword: false
+SpacesInAngles: false
+SpacesInContainerLiterals: false
+TabWidth: 4
+UseTab: Never

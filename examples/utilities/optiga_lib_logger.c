@@ -92,7 +92,7 @@ void optiga_lib_print_string(const char_t *p_log_string) {
     if (NULL == p_log_string) {
         return;
     }
-#ifdef  DEBUG
+#ifdef DEBUG
     Log("%s", p_log_string);
 #else
     // lint --e{534} The return value is not used hence not checked*/
@@ -101,8 +101,7 @@ void optiga_lib_print_string(const char_t *p_log_string) {
 }
 
 void optiga_lib_print_string_with_newline(const char_t *p_log_string) {
-    
-#ifdef  DEBUG
+#ifdef DEBUG
     if (NULL == p_log_string) {
         return;
     }
@@ -124,12 +123,12 @@ void optiga_lib_print_message(
     const char_t *p_log_layer,
     const char_t *p_log_color
 ) {
-#ifdef  DEBUG
+#ifdef DEBUG
     if ((NULL == p_log_string) || (NULL == p_log_layer) || (NULL == p_log_color)) {
         return;
     }
     Log("%s%s\r\n", p_log_layer, p_log_string);
-#else    
+#else
     uint8_t new_line_characters[2] = {OPTIGA_LOGGER_NEW_LINE_CHAR};
     char_t color_buffer[400];
 
@@ -172,15 +171,15 @@ void optiga_lib_print_status(
         optiga_lib_word_to_hex_string(return_value, uint16t_conv_buffer);
         strcat(return_value_buffer, (char_t *)uint16t_conv_buffer);
     }
-#ifdef  DEBUG
+#ifdef DEBUG
     Log("%s%s\r\n", string_buffer, return_value_buffer);
 #else
     OPTIGA_LIB_LOGGER_PRINT_INFO(
-         color_buffer,
-         (char_t *)return_value_buffer,
-         string_buffer,
-         p_log_color
-     );
+        color_buffer,
+        (char_t *)return_value_buffer,
+        string_buffer,
+        p_log_color
+    );
 
     // lint --e{534} The return value is not used hence not checked*/
     pal_logger_write(&logger_console, (const uint8_t *)color_buffer, strlen(color_buffer));
