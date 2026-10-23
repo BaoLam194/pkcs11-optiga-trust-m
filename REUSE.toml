@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2024 Infineon Technologies AG
+#
+# SPDX-License-Identifier: MIT
+
+version = 1
+
+[[annotations]]
+path = ["CHANGELOG.md", "CONTRIBUTING.md", "tools/coding_style/README.md", "tests/openssl/openssl_engine/openssl3_pkcs11.cnf", "tests/openssl/openssl_engine/openssl1_pkcs11.cnf"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2024 Infineon Technologies AG"
+SPDX-License-Identifier = "CC-BY-NC-ND-4.0"
+
+[[annotations]]
+path = ["tests/aws_python/images/**", "docs/**", "tests/aws_python/certificates/**", "tests/opensc/certificates/**", "docs/schematics/v_1_0/tests/LibFT260-v1.1.2/imports/LibFT260/lib/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2024 Infineon Technologies AG"
+SPDX-License-Identifier = "MIT"

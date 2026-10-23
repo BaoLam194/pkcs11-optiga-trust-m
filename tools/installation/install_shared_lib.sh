@@ -6,22 +6,24 @@
 
 DEBUG_MODE=0
 
-	echo "-----> Building using cmake with DEBUG"
-	cd ../..
-	rm -r build
-	set -e
-	mkdir build
-	cd build
+echo "-----> Building using cmake with DEBUG"
+cd ../..
+rm -r build
+set -e
+mkdir build
+cd build
 if [ $DEBUG_MODE -eq 1 ]
 then
 	cmake .. -DENABLE_DEBUG=1
 else
 	cmake ..
 fi
-	make
-	cd ..
+make
+cd ..
 
 echo "-----> Installing"
 set +e
 sudo rm /lib/liboptigatrust*.so > /dev/null
 sudo cp -r ./lib/*so /lib/
+# Remove a mutex left by a previous run so the runner can create it.
+sudo rm -f /dev/shm/trustm-mutex

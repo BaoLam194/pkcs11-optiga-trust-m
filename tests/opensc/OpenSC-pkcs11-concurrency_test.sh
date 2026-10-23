@@ -11,7 +11,7 @@ set -e
 
 
 clear
-echo "Parallel process test examples:"
+echo "Paralell process test examples:"
 echo "=================================================="
 echo "======>Show PKCS#11 module/library info"	
 ./pd --show-info
